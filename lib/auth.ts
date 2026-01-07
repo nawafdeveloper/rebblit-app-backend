@@ -13,20 +13,30 @@ export const auth = betterAuth({
     advanced: {
         disableOriginCheck: true
     },
+    user: {
+        additionalFields: {
+            hasProfile: {
+                type: "boolean",
+                defaultValue: false
+            }
+        }
+    },
     plugins: [
         twoFactor(),
         username(),
-        emailOTP({ 
-            async sendVerificationOTP({ email, otp, type }) { 
-                if (type === "sign-in") { 
+        emailOTP({
+            async sendVerificationOTP({ email, otp, type }) {
+                if (type === "sign-in") {
                     // Send the OTP for sign in
-                } else if (type === "email-verification") { 
+                } else if (type === "email-verification") {
                     // Send the OTP for email verification
-                } else { 
+                } else {
                     // Send the OTP for password reset
-                } 
-            }, 
+                }
+            },
         }),
         bearer()
     ]
 });
+
+type Session = typeof auth.$Infer.Session

@@ -15,6 +15,7 @@ export const user = pgTable("user", {
     twoFactorEnabled: boolean("two_factor_enabled").default(false),
     username: text("username").unique(),
     displayUsername: text("display_username"),
+    hasProfile: boolean("has_profile").default(false),
 });
 
 export const session = pgTable(
@@ -174,6 +175,8 @@ export const userProfiles = pgTable('user_profiles', {
     biography: text('biography'),
     profileType: profileTypeEnum('profile_type').default('public').notNull(),
     avatarUrl: text('avatar_url'),
+    gender: text('gender'),
+    birthday: timestamp('birthday', { mode: 'date' }),
     websiteUrl: text('website_url'),
     location: varchar('location', { length: 200 }),
     followerCount: integer('follower_count').default(0).notNull(),
