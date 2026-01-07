@@ -50,9 +50,16 @@ export async function POST(req: Request) {
     let avatarUploaded = null;
 
     if (avatarRaw) {
-        const upload = await uploadImage(avatarRaw);
-
-        avatarUploaded = upload.url;
+        try {
+            const upload = await uploadImage(avatarRaw);
+            avatarUploaded = upload.url;
+        } catch (error) {
+            console.error("Avatar upload failed:", error);
+            return NextResponse.json(
+                { message: "Failed to upload avatar" },
+                { status: 500 }
+            );
+        }
     }
 
     const profileId = generateId();
@@ -67,8 +74,14 @@ export async function POST(req: Request) {
 
     const birthdayDate = birthdayRaw ? new Date(birthdayRaw) : null;
 
-    await db.transaction(async (tx) => {
-        await tx.insert(userProfiles).values({
+    // Track what was inserted for rollback
+    let profileInserted = false;
+    let preferencesInserted = false;
+    let userUpdated = false;
+
+    try {
+        // Step 1: Insert profile
+        await db.insert(userProfiles).values({
             profileId: profileId.toString(),
             userId,
             gender,
@@ -77,24 +90,73 @@ export async function POST(req: Request) {
             biography,
             avatarUrl: avatarUploaded,
         });
+        profileInserted = true;
 
-        await tx.insert(userPreferences).values({
+        // Step 2: Insert preferences
+        await db.insert(userPreferences).values({
             preferenceId: preferenceId.toString(),
             userId,
             preferedLanguage: prefered_language,
         });
+        preferencesInserted = true;
 
-        await tx
-        .update(user)
-        .set({
-            hasProfile: true,
-            image: avatarUploaded
-        })
-        .where(eq(user.id, userId));
-    });
+        // Step 3: Update user
+        const updateResult = await db
+            .update(user)
+            .set({
+                hasProfile: true,
+                image: avatarUploaded
+            })
+            .where(eq(user.id, userId))
+            .returning();
 
-    return NextResponse.json(
-        { message: "Profile created successfully" },
-        { status: 201 }
-    );
+        if (!updateResult || updateResult.length === 0) {
+            throw new Error("Failed to update user");
+        }
+        userUpdated = true;
+
+        return NextResponse.json(
+            { message: "Profile created successfully" },
+            { status: 201 }
+        );
+
+    } catch (error: any) {
+        console.error("Profile creation error:", error);
+
+        // Rollback: Clean up any inserted data
+        try {
+            if (preferencesInserted) {
+                await db
+                    .delete(userPreferences)
+                    .where(eq(userPreferences.userId, userId));
+                console.log("Rolled back user preferences");
+            }
+
+            if (profileInserted) {
+                await db
+                    .delete(userProfiles)
+                    .where(eq(userProfiles.userId, userId));
+                console.log("Rolled back user profile");
+            }
+
+            // If user was updated but something failed, revert it
+            if (userUpdated) {
+                await db
+                    .update(user)
+                    .set({
+                        hasProfile: false,
+                        image: null
+                    })
+                    .where(eq(user.id, userId));
+                console.log("Rolled back user update");
+            }
+        } catch (rollbackError) {
+            console.error("Rollback failed:", rollbackError);
+        }
+
+        return NextResponse.json(
+            { message: "Failed to create profile. Please try again." },
+            { status: 500 }
+        );
+    }
 }
