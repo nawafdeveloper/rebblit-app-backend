@@ -27,7 +27,7 @@ export async function GET(req: Request) {
         };
 
         return NextResponse.json(
-            { data: preferences },
+            { data: preferences[0] },
             { status: 200 }
         );
     } catch (error) {

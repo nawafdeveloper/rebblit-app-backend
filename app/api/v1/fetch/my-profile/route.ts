@@ -27,7 +27,7 @@ export async function GET(req: Request) {
         };
 
         return NextResponse.json(
-            { data: profile },
+            { data: profile[0] },
             { status: 200 }
         );
     } catch (error) {
