@@ -25,8 +25,10 @@ export const auth = betterAuth({
         twoFactor({
             skipVerificationOnEnable: true,
             otpOptions: {
-                async sendOTP({ user, otp }, ctx) {
+                async sendOTP({ user, otp }) {
                     // send otp to user
+                    console.log('🔐 DEV 2FA OTP:', otp);
+                    console.log('👤 User:', user.email);
                 },
             },
         }),
@@ -35,6 +37,8 @@ export const auth = betterAuth({
             async sendVerificationOTP({ email, otp, type }) {
                 if (type === "sign-in") {
                     // Send the OTP for sign in
+                    console.log('🔐 DEV 2FA OTP:', otp);
+                    console.log('👤 User:', email);
                 } else if (type === "email-verification") {
                     // Send the OTP for email verification
                 } else {
