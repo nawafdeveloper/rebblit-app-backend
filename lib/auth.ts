@@ -22,7 +22,9 @@ export const auth = betterAuth({
         }
     },
     plugins: [
-        twoFactor(),
+        twoFactor({
+            skipVerificationOnEnable: true
+        }),
         username(),
         emailOTP({
             async sendVerificationOTP({ email, otp, type }) {
