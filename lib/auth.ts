@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db";
 import { bearer, emailOTP, twoFactor, username } from "better-auth/plugins";
+import { sendEmail } from "@/helper/send-email";
 
 export const auth = betterAuth({
     database: drizzleAdapter(db, {
@@ -26,9 +27,12 @@ export const auth = betterAuth({
             skipVerificationOnEnable: true,
             otpOptions: {
                 async sendOTP({ user, otp }) {
-                    // send otp to user
-                    console.log('🔐 DEV 2FA OTP:', otp);
-                    console.log('👤 User:', user.email);
+                    await sendEmail({
+                        from: 'Acme <testin@updates.mahjuoz.com>',
+                        to: user.email,
+                        subject: 'OTP Two Factor Verification',
+                        text: `Your two factor verification code is this: ${otp}`
+                    })
                 },
             },
         }),
@@ -36,13 +40,26 @@ export const auth = betterAuth({
         emailOTP({
             async sendVerificationOTP({ email, otp, type }) {
                 if (type === "sign-in") {
-                    // Send the OTP for sign in
-                    console.log('🔐 DEV 2FA OTP:', otp);
-                    console.log('👤 User:', email);
+                    await sendEmail({
+                        from: 'Acme <testin@updates.mahjuoz.com>',
+                        to: email,
+                        subject: 'OTP Email sign in',
+                        text: `Your verification code is this: ${otp}`
+                    })
                 } else if (type === "email-verification") {
-                    // Send the OTP for email verification
+                    await sendEmail({
+                        from: 'Acme <testin@updates.mahjuoz.com>',
+                        to: email,
+                        subject: 'Verify your email address',
+                        text: `Your verification code is this: ${otp}`
+                    })
                 } else {
-                    // Send the OTP for password reset
+                    await sendEmail({
+                        from: 'Acme <testin@updates.mahjuoz.com>',
+                        to: email,
+                        subject: 'Password reset',
+                        text: `Your verification code is this: ${otp}`
+                    })
                 }
             },
         }),
